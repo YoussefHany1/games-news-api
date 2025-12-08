@@ -9,6 +9,30 @@
       "source": "/lol/ar",
       "destination": "/api/lol/ar.js"
     },
+
+        {
+      "source": "/valorant/en",
+      "destination": "/api/valorant/en.js"
+    },
+        {
+      "source": "/valorant/ar",
+      "destination": "/api/valorant/ar.js"
+    },
+
+            {
+      "source": "/eafc/en",
+      "destination": "/api/eafc/en.js"
+    },
+            {
+      "source": "/eafc/ar",
+      "destination": "/api/eafc/ar.js"
+    },
+
+            {
+      "source": "/marvelrivals/en",
+      "destination": "/api/marvelRivals/en.js"
+    },
+    
     {
       "source": "/(.*)",
       "destination": "/api/lol/en.js"

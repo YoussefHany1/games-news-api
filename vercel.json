@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/lol/en",
+      "destination": "/api/lol/en.js"
+    },
+    {
+      "source": "/lol/ar",
+      "destination": "/api/lol/ar.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/api/lol/en.js"
+    }
+  ]
+}

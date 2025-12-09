@@ -29,7 +29,7 @@
     },
 
             {
-      "source": "/marvelrivals/en",
+      "source": "/marvelRivals/en",
       "destination": "/api/marvelRivals/en.js"
     },
     

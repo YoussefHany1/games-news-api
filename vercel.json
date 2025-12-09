@@ -31,11 +31,8 @@
             {
       "source": "/marvelRivals/en",
       "destination": "/api/marvelRivals/en.js"
-    },
-    
-    {
-      "source": "/(.*)",
-      "destination": "/api/lol/en.js"
     }
+    
+
   ]
 }

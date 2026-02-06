@@ -81,7 +81,7 @@ module.exports = async (req, res) => {
         const linkAttr = $(element).attr("href");
         const fullLink = linkAttr.startsWith("http")
           ? linkAttr
-          : `https://www.leagueoflegends.com${linkAttr}`;
+          : `https://playvalorant.com${linkAttr}`;
 
         const title = $(element)
           .find('[data-testid="card-title"]')
@@ -127,7 +127,7 @@ module.exports = async (req, res) => {
           link: fullLink,
           image: imageUrl || "IMAGE_NOT_FOUND_IN_JSON_OR_HTML", // رسالة خطأ واضحة
         });
-      }
+      },
     );
 
     res.status(200).json({

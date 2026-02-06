@@ -1,72 +1,89 @@
 const axios = require("axios");
-const cheerio = require("cheerio");
+
+// دالة لاستخراج أول صورة من محتوى Steam
+function extractImageFromHTML(htmlContent) {
+  if (!htmlContent) return null;
+
+  // البحث عن Steam [img] tags أولاً
+  // Pattern: [img]{STEAM_CLAN_IMAGE}/path/image.png[/img]
+  const steamImgRegex = /\[img\]\{STEAM_CLAN_IMAGE\}\/([^\[]+)\[\/img\]/i;
+  const steamMatch = htmlContent.match(steamImgRegex);
+
+  if (steamMatch && steamMatch[1]) {
+    // استبدال {STEAM_CLAN_IMAGE} بالرابط الفعلي
+    return `https://clan.steamstatic.com/images/${steamMatch[1]}`;
+  }
+
+  // البحث عن img src في الـ HTML (حالة احتياطية)
+  const imgRegex = /<img[^>]+src=["']([^"']+)["']/i;
+  const match = htmlContent.match(imgRegex);
+
+  if (match && match[1]) {
+    return match[1];
+  }
+
+  // البحث عن روابط الصور المباشرة (jpg, png, gif, webp)
+  const urlRegex = /(https?:\/\/[^\s<>"]+?\.(jpg|jpeg|png|gif|webp))/i;
+  const urlMatch = htmlContent.match(urlRegex);
+
+  if (urlMatch && urlMatch[1]) {
+    return urlMatch[1];
+  }
+
+  return null;
+}
+
+// دالة لتنظيف محتوى HTML من التاجات
+function stripHTMLTags(html) {
+  if (!html) return "";
+  return html
+    .replace(/<[^>]*>/g, " ") // إزالة جميع التاجات
+    .replace(/\s+/g, " ") // تقليل المسافات المتعددة
+    .trim();
+}
 
 module.exports = async (req, res) => {
   // إعدادات الكاش (Cache) لتسريع الاستجابة في المرات القادمة
   res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=1800");
 
   try {
-    const url = "https://www.ea.com/games/ea-sports-fc/fc-26/news";
+    // Steam API endpoint لـ EA FC 25
+    // appid=3405690 هو الـ ID الخاص بـ EA SPORTS FC 25 على Steam
+    const steamApiUrl =
+      "https://api.steampowered.com/ISteamNews/GetNewsForApp/v0002/?appid=3405690&format=json&count=20";
 
-    // جلب محتوى الصفحة
-    const { data } = await axios.get(url, {
+    // جلب البيانات من Steam API
+    const { data } = await axios.get(steamApiUrl, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
       },
     });
 
-    const $ = cheerio.load(data);
     const articles = [];
 
-    // البحث عن جميع الروابط التي تؤدي إلى أخبار FC 26
-    // نستخدم has('h3') للتأكد من أن الكارد يحتوي على عنوان (لتجنب الروابط العشوائية)
-    $('a[href*="/games/ea-sports-fc/fc-26/news"]')
-      .has("h3")
-      .each((index, element) => {
-        const linkAttr = $(element).attr("href");
+    // التحقق من وجود البيانات
+    if (data.appnews && data.appnews.newsitems) {
+      data.appnews.newsitems.forEach((item) => {
+        // استخراج الصورة من المحتوى
+        const imageUrl = extractImageFromHTML(item.contents);
 
-        // بناء الرابط الكامل
-        const fullLink = linkAttr.startsWith("http")
-          ? linkAttr
-          : `https://www.ea.com${linkAttr}`;
+        // تنظيف المحتوى من HTML للوصف
+        const cleanDescription = stripHTMLTags(item.contents);
 
-        // استخراج العنوان (موجود داخل h3)
-        const title = $(element).find("h3").text().trim();
+        // تحويل timestamp إلى ISO format
+        const dateISO = new Date(item.date * 1000).toISOString();
 
-        // استخراج التاريخ (موجود في عنصر span قبل العنوان مباشرة حسب الكود المرفق)
-        // نستخدم prev() للبحث عن العنصر السابق للعنوان
-        const date = $(element).find("h3").prev().text().trim();
-
-        // استخراج التصنيف (Category)
-        // نبحث عن div يحتوي على كلمة "News" أو نأخذ أول نص داخل التاجات
-        let category = "News";
-        const tagText = $(element)
-          .find("div[class*='Tag_tagInner']")
-          .text()
-          .trim();
-        if (tagText) category = tagText;
-
-        // استخراج الصورة
-        const imgElement = $(element).find("img");
-        let imageUrl = imgElement.attr("src");
-
-        // أحياناً تكون الصورة داخل data-src أو srcset
-        if (!imageUrl) imageUrl = imgElement.attr("data-src");
-
-        // إضافة الخبر للقائمة إذا كان يحتوي على عنوان ورابط
-        if (title && fullLink) {
-          articles.push({
-            title,
-            category,
-            date,
-            description: "", // الوصف غير متاح بوضوح في الكارد الخارجي
-            link: fullLink,
-            image: imageUrl || null,
-          });
-        }
+        articles.push({
+          title: item.title || "",
+          category: item.feedlabel || "News",
+          date: dateISO,
+          description: cleanDescription,
+          link: item.url || "",
+          image: imageUrl,
+        });
       });
+    }
 
     res.status(200).json({
       status: "success",
@@ -75,10 +92,10 @@ module.exports = async (req, res) => {
       data: articles,
     });
   } catch (error) {
-    console.error("Error scraping EA FC data:", error);
+    console.error("Error fetching EA FC data from Steam:", error);
     res.status(500).json({
       status: "error",
-      message: "Failed to scrape data",
+      message: "Failed to fetch data from Steam API",
       error: error.message,
     });
   }

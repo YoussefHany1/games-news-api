@@ -33,13 +33,39 @@ function extractImageFromHTML(htmlContent) {
   return null;
 }
 
-// دالة لتنظيف محتوى HTML من التاجات
+// دالة لتنظيف محتوى HTML والـ BBCode من Steam
 function stripHTMLTags(html) {
   if (!html) return "";
-  return html
-    .replace(/<[^>]*>/g, " ") // إزالة جميع التاجات
-    .replace(/\s+/g, " ") // تقليل المسافات المتعددة
-    .trim();
+
+  return (
+    html
+      // إزالة Steam BBCode tags
+      .replace(/\[img\][^\[]+\[\/img\]/gi, "") // إزالة [img]...[/img]
+      .replace(/\[url=[^\]]+\]/gi, "") // إزالة [url=...]
+      .replace(/\[\/url\]/gi, "") // إزالة [/url]
+      .replace(/\[b\]/gi, "") // إزالة [b]
+      .replace(/\[\/b\]/gi, "") // إزالة [/b]
+      .replace(/\[i\]/gi, "") // إزالة [i]
+      .replace(/\[\/i\]/gi, "") // إزالة [/i]
+      .replace(/\[u\]/gi, "") // إزالة [u]
+      .replace(/\[\/u\]/gi, "") // إزالة [/u]
+      .replace(/\[h[1-6]\]/gi, "") // إزالة [h1], [h2], etc.
+      .replace(/\[\/h[1-6]\]/gi, "") // إزالة [/h1], [/h2], etc.
+      .replace(/\[p\]/gi, "") // إزالة [p]
+      .replace(/\[\/p\]/gi, "") // إزالة [/p]
+      .replace(/\[p align=["'][^"']*["']\]/gi, "") // إزالة [p align="..."]
+      .replace(/\[list\]/gi, "") // إزالة [list]
+      .replace(/\[\/list\]/gi, "") // إزالة [/list]
+      .replace(/\[\*\]/gi, "") // إزالة [*]
+      // إزالة HTML tags العادية
+      .replace(/<[^>]*>/g, " ") // إزالة جميع التاجات
+      // إزالة الروابط الكاملة
+      .replace(/https?:\/\/[^\s]+/g, "") // إزالة الروابط
+      // تنظيف المسافات
+      .replace(/\n+/g, " ") // تحويل أسطر جديدة لمسافات
+      .replace(/\s+/g, " ") // تقليل المسافات المتعددة
+      .trim()
+  );
 }
 
 module.exports = async (req, res) => {
